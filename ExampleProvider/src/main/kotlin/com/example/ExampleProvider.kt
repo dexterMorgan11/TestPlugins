@@ -11,9 +11,7 @@ class BotolatProvider : MainAPI() {
     override val supportedTypes = setOf(TvType.Movie)
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // صفحة الفيديوهات في موقع بطولات
         val document = app.get("$mainUrl/video").document
-        // تحديد عناصر الفيديو
         val items = document.select("div.col-sm-6.col-md-4") 
         
         val homeItems = items.mapNotNull {
@@ -32,8 +30,6 @@ class BotolatProvider : MainAPI() {
         val document = app.get(url).document
         val title = document.selectFirst("h1")?.text() ?: ""
         val poster = document.selectFirst("meta[property=og:image]")?.attr("content")
-        
-        // استخراج رابط الفيديو من الـ Iframe
         val videoUrl = document.select("iframe").attr("src") ?: ""
 
         return newMovieLoadResponse(title, url, TvType.Movie, videoUrl) {
