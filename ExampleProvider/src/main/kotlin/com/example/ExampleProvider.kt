@@ -1,9 +1,12 @@
-package com.lagradost
+package com.example // تأكد إن المجلدات ماشية مع الاسم ده
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.app
 
-class ExampleProvider : MainAPI() { // سيب الاسم ده زي ما هو عشان القالب
+class ExampleProvider : MainAPI() {
     override var mainUrl = "https://www.btolat.com"
     override var name = "Botolat Goals"
     override val hasMainPage = true
@@ -11,22 +14,32 @@ class ExampleProvider : MainAPI() { // سيب الاسم ده زي ما هو ع�
     override val supportedTypes = setOf(TvType.Movie)
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        // استخدام app.get بشكل صحيح
         val document = app.get("$mainUrl/video").document
         val items = document.select("div.col-sm-6.col-md-4") 
-        val home = items.mapNotNull {
-            val title = it.selectFirst("h2")?.text() ?: return@mapNotNull null
+        
+        val homeItems = items.mapNotNull {
+            val title = it.selectFirst("h3, h2")?.text() ?: return@mapNotNull null
             val link = it.selectFirst("a")?.attr("href") ?: ""
-            val poster = it.selectFirst("img")?.attr("src")
-            newMovieSearchResponse(title, "$mainUrl$link", TvType.Movie) { this.posterUrl = poster }
+            val image = it.selectFirst("img")?.attr("src")
+            
+            // استدعاء newMovieSearchResponse
+            newMovieSearchResponse(title, "$mainUrl$link", TvType.Movie) {
+                this.posterUrl = image
+            }
         }
-        return newHomePageResponse(home)
+        return newHomePageResponse(homeItems)
     }
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-        val title = document.selectFirst("h1")?.text() ?: ""
+        val title = document.selectFirst("h1")?.text() ?: "Botolat Video"
+        val poster = document.selectFirst("meta[property=og:image]")?.attr("content")
         val videoUrl = document.select("iframe").attr("src") ?: ""
-        return newMovieLoadResponse(title, url, TvType.Movie, videoUrl)
+
+        return newMovieLoadResponse(title, url, TvType.Movie, videoUrl) {
+            this.posterUrl = poster
+        }
     }
 
     override suspend fun loadLinks(
@@ -35,6 +48,7 @@ class ExampleProvider : MainAPI() { // سيب الاسم ده زي ما هو ع�
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+        if (data.isEmpty()) return false
         loadExtractor(data, data, subtitleCallback, callback)
         return true
     }
