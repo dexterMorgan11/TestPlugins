@@ -1,4 +1,4 @@
-package com.example // تأكد إن المجلدات ماشية مع الاسم ده
+package com.example
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
@@ -14,7 +14,6 @@ class ExampleProvider : MainAPI() {
     override val supportedTypes = setOf(TvType.Movie)
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // استخدام app.get بشكل صحيح
         val document = app.get("$mainUrl/video").document
         val items = document.select("div.col-sm-6.col-md-4") 
         
@@ -23,12 +22,16 @@ class ExampleProvider : MainAPI() {
             val link = it.selectFirst("a")?.attr("href") ?: ""
             val image = it.selectFirst("img")?.attr("src")
             
-            // استدعاء newMovieSearchResponse
             newMovieSearchResponse(title, "$mainUrl$link", TvType.Movie) {
                 this.posterUrl = image
             }
         }
-        return newHomePageResponse(homeItems)
+        
+        // التعديل هنا: نضع القائمة داخل HomePageList مع عنوان للقسم
+        return newHomePageResponse(
+            listOf(HomePageList("أحدث الأهداف", homeItems)),
+            hasNext = false
+        )
     }
 
     override suspend fun load(url: String): LoadResponse {
@@ -48,7 +51,7 @@ class ExampleProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        if (data.isEmpty()) return false
+        if (data.isBlank()) return false
         loadExtractor(data, data, subtitleCallback, callback)
         return true
     }
